@@ -18,75 +18,47 @@ package org.apache.camel;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.test.junit4.CamelTestSupport;
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 
 public class FopComponentTest extends CamelTestSupport {
+
+    @EndpointInject(uri = "mock:result")
+    protected MockEndpoint resultEndpoint;
 
     @Produce(uri = "direct:start")
     protected ProducerTemplate template;
 
-
-
-    @Test
-    public void testName() throws Exception {
-
-
-        Endpoint endpoint = context().getEndpoint("file:data?delete=false");
-        PollingConsumer pollingConsumer = endpoint.createPollingConsumer();
-
-        pollingConsumer.start();
-
-        Exchange exchange = pollingConsumer.receive();
-        Object body = exchange.getIn().getBody();
-
-
-
-        File original = new File("data/result/original_result.pdf");
-
-        assertTrue(original.equals(body));
-
-
-    }
-
     @Ignore
     @Test
-    public void testFop() throws Exception {
-        MockEndpoint mock = getMockEndpoint("mock:result");
-        mock.expectedMinimumMessageCount(1);
+    public void createPDFUsingXMLDataAndXSLTTransformation() throws Exception {
+        resultEndpoint.expectedMessageCount(1);
+        InputStream file = new FileInputStream("src/test/data/xml/data.xml");
 
-
-//        Exchange exchange = createExchangeWithOptionalInBody("Some content to be stored");
-//        template.send(exchange);
-//        String newNodeId = exchange.getOut().getBody(String.class);
-
-
-        assertMockEndpointsSatisfied();
-    }
-
-
-    private Exchange createExchangeWithOptionalInBody(String body) {
-        DefaultExchange exchange = new DefaultExchange(context);
-        if (body != null) {
-            exchange.getIn().setBody(body);
-        }
-        return exchange;
+        template.sendBody(file);
+        resultEndpoint.assertIsSatisfied();
+        PDDocument document = PDDocument.load("target/data/result.pdf");
+        String pdfText = PDFHelper.extractTextFrom(document);
+        assertTrue(pdfText.contains("Project"));
+        assertTrue(pdfText.contains("John Doe"));
     }
 
     @Override
-    protected RouteBuilder createRouteBuilder() throws Exception {
+    protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-              //  from("direct:start")
-                    from("file:data?delete=false")
-                        .to("fop:test")
+                from("direct:start")
+                        .to("xslt:xslt/template.xsl")
+                        .to("fop:pdf")
                         .setHeader(Exchange.FILE_NAME, constant("result.pdf"))
-                        .to("file:data")
+                        .to("file:target/data")
                         .to("mock:result");
+
             }
         };
     }

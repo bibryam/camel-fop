@@ -16,21 +16,29 @@
  */
 package org.apache.camel;
 
-import org.apache.camel.Consumer;
-import org.apache.camel.Processor;
-import org.apache.camel.Producer;
+import org.apache.avalon.framework.configuration.Configuration;
+import org.apache.avalon.framework.configuration.ConfigurationException;
+import org.apache.avalon.framework.configuration.DefaultConfigurationBuilder;
 import org.apache.camel.impl.DefaultEndpoint;
+import org.apache.fop.apps.FOPException;
+import org.apache.fop.apps.FopFactory;
+import org.xml.sax.SAXException;
+
+import java.io.IOException;
 
 /**
  * Represents a Fop endpoint.
  */
 public class FopEndpoint extends DefaultEndpoint {
+    private String userConfigURL;
+    private FopFactory fopFactory;
 
     public FopEndpoint() {
     }
 
     public FopEndpoint(String uri, FopComponent component) {
         super(uri, component);
+        this.fopFactory = FopFactory.newInstance();
     }
 
     public FopEndpoint(String endpointUri) {
@@ -38,14 +46,46 @@ public class FopEndpoint extends DefaultEndpoint {
     }
 
     public Producer createProducer() throws Exception {
-        return new FopProducer(this);
+        return new FopProducer(this, fopFactory);
     }
 
     public Consumer createConsumer(Processor processor) throws Exception {
-        return new FopConsumer(this, processor);
+        throw new UnsupportedOperationException("Consumer not supported for FOP endpoint");
     }
 
     public boolean isSingleton() {
         return true;
+    }
+
+    public FopFactory getFopFactory() {
+        return fopFactory;
+    }
+
+    public String getUserConfigURL() {
+        return userConfigURL;
+    }
+
+    public void setUserConfigURL(String userConfigURL) {
+        this.userConfigURL = userConfigURL;
+        updateConfigurations();
+    }
+
+    private void updateConfigurations() {
+        DefaultConfigurationBuilder cfgBuilder = new DefaultConfigurationBuilder();
+        Configuration cfg = null;
+        try {
+            cfg = cfgBuilder.buildFromFile(this.getUserConfigURL());
+        } catch (SAXException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            fopFactory.setUserConfig(cfg);
+        } catch (FOPException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
