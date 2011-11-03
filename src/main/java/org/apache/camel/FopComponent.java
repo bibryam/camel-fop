@@ -16,10 +16,9 @@
  */
 package org.apache.camel;
 
-import java.util.Map;
-
-import org.apache.camel.Endpoint;
 import org.apache.camel.impl.DefaultComponent;
+
+import java.util.Map;
 
 /**
  * Represents the component that manages {@link FopEndpoint}.
@@ -27,7 +26,7 @@ import org.apache.camel.impl.DefaultComponent;
 public class FopComponent extends DefaultComponent {
 
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
-        Endpoint endpoint = new FopEndpoint(uri, this);
+        FopEndpoint endpoint = new FopEndpoint(uri, this, remaining);
         setProperties(endpoint, parameters);
         return endpoint;
     }

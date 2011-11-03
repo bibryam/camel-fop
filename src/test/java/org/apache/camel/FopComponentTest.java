@@ -24,7 +24,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.FileInputStream;
-import java.io.InputStream;
 
 public class FopComponentTest extends CamelTestSupport {
 
@@ -38,14 +37,15 @@ public class FopComponentTest extends CamelTestSupport {
     @Test
     public void createPDFUsingXMLDataAndXSLTTransformation() throws Exception {
         resultEndpoint.expectedMessageCount(1);
-        InputStream file = new FileInputStream("src/test/data/xml/data.xml");
+        FileInputStream inputStream = new FileInputStream("src/test/data/xml/data.xml");
 
-        template.sendBody(file);
+        template.sendBody(inputStream);
         resultEndpoint.assertIsSatisfied();
+
         PDDocument document = PDDocument.load("target/data/result.pdf");
-        String pdfText = PDFHelper.extractTextFrom(document);
-        assertTrue(pdfText.contains("Project"));
-        assertTrue(pdfText.contains("John Doe"));
+        String pdfText = FopHelper.extractTextFrom(document);
+        assertTrue(pdfText.contains("Project"));    //from xsl template
+        assertTrue(pdfText.contains("John Doe"));   //from data xml
     }
 
     @Override
@@ -54,7 +54,7 @@ public class FopComponentTest extends CamelTestSupport {
             public void configure() {
                 from("direct:start")
                         .to("xslt:xslt/template.xsl")
-                        .to("fop:pdf")
+                        .to("fop:application/pdf")
                         .setHeader(Exchange.FILE_NAME, constant("result.pdf"))
                         .to("file:target/data")
                         .to("mock:result");

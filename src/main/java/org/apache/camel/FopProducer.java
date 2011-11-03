@@ -32,30 +32,40 @@ import java.util.Map;
  * The Fop producer.
  */
 public class FopProducer extends DefaultProducer {
-    public static final String CAMEL_FOP_RENDER = "CamelFop.render.";
-    public static final String CAMEL_FOP_ENCRYPT = "CamelFop.encrypt.";
     private final FopFactory fopFactory;
+    private final String remaining;
 
-    public FopProducer(FopEndpoint endpoint, FopFactory fopFactory) {
+    public FopProducer(FopEndpoint endpoint, FopFactory fopFactory, String remaining) {
         super(endpoint);
         this.fopFactory = fopFactory;
+        this.remaining = remaining;
     }
 
     public void process(Exchange exchange) throws Exception {
         FOUserAgent userAgent = fopFactory.newFOUserAgent();
-        Source src = exchange.getIn().getBody(StreamSource.class);
         Map<String, Object> headers = exchange.getIn().getHeaders();
-
         setRenderParameters(userAgent, headers);
         setEncryptionParameters(userAgent, headers);
 
-        OutputStream out = transform(userAgent, src);
+        String outputFormat = getOutputFormat(exchange);
+        Source src = exchange.getIn().getBody(StreamSource.class);
+
+        OutputStream out = transform(userAgent, outputFormat, src);
         exchange.getOut().setBody(out);
     }
 
-    private OutputStream transform(FOUserAgent userAgent, Source src) throws FOPException, TransformerException {
+    private String getOutputFormat(Exchange exchange) {
+        String outputFormat = exchange.getIn().getHeader(FopParams.CAMEL_FOP_OUTPUT_FORMAT, this.remaining, String.class);
+        if (outputFormat == null) {
+            throw new RuntimeExchangeException("Missing output format", exchange);
+        }
+
+        return outputFormat;
+    }
+
+    private OutputStream transform(FOUserAgent userAgent, String outputFormat, Source src) throws FOPException, TransformerException {
         OutputStream out = new ByteArrayOutputStream();
-        Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, userAgent, out);
+        Fop fop = fopFactory.newFop(outputFormat, userAgent, out);
         TransformerFactory factory = TransformerFactory.newInstance();
         Transformer transformer = factory.newTransformer();
 
@@ -65,7 +75,7 @@ public class FopProducer extends DefaultProducer {
     }
 
     private void setEncryptionParameters(FOUserAgent userAgent, Map<String, Object> headers) throws Exception {
-        Map<String, Object> encryptionParameters = IntrospectionSupport.extractProperties(headers, CAMEL_FOP_ENCRYPT);
+        Map<String, Object> encryptionParameters = IntrospectionSupport.extractProperties(headers, FopParams.CAMEL_FOP_ENCRYPT);
         if (!encryptionParameters.isEmpty()) {
             PDFEncryptionParams encryptionParams = new PDFEncryptionParams();
             IntrospectionSupport.setProperties(encryptionParams, encryptionParameters);
@@ -74,7 +84,7 @@ public class FopProducer extends DefaultProducer {
     }
 
     private void setRenderParameters(FOUserAgent userAgent, Map<String, Object> headers) throws Exception {
-        Map<String, Object> parameters = IntrospectionSupport.extractProperties(headers, CAMEL_FOP_RENDER);
+        Map<String, Object> parameters = IntrospectionSupport.extractProperties(headers, FopParams.CAMEL_FOP_RENDER);
         if (!parameters.isEmpty()) {
             IntrospectionSupport.setProperties(userAgent, parameters);
         }

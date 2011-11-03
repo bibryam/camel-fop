@@ -18,69 +18,79 @@ package org.apache.camel;
 
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.test.junit4.CamelTestSupport;
+import org.apache.fop.apps.MimeConstants;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDDocumentInformation;
-import org.apache.pdfbox.util.PDFTextStripper;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.Writer;
 
 public class FopEndpointTest extends CamelTestSupport {
 
     @Test
     public void generatePDFFromXSLFOWithSpecificText() throws Exception {
-        Endpoint endpoint = context().getEndpoint("fop:pdf");
+        Endpoint endpoint = context().getEndpoint("fop:application/pdf");
         Producer producer = endpoint.createProducer();
         Exchange exchange = new DefaultExchange(context);
-        exchange.getIn().setBody(PDFHelper.decorateTextWithXSLFO("Test Content"));
+        exchange.getIn().setBody(FopHelper.decorateTextWithXSLFO("Test Content"));
 
         producer.process(exchange);
         PDDocument document = getDocumentFrom(exchange);
-        String content = PDFHelper.extractTextFrom(document);
+        String content = FopHelper.extractTextFrom(document);
         assertEquals("Test Content", content);
-    }
-
-    private PDDocument getDocumentFrom(Exchange exchange) throws IOException {
-        InputStream inputStream = exchange.getOut().getBody(InputStream.class);
-        return PDDocument.load(inputStream);
     }
 
     @Test
     public void specifyCustomUserConfigurationFile() throws Exception {
-        FopEndpoint customConfiguredEndpoint = context().getEndpoint("fop:pdf?userConfigURL=src/test/data/conf/testcfg.xml", FopEndpoint.class);
+        FopEndpoint customConfiguredEndpoint = context().getEndpoint("fop:application/pdf?userConfigURL=src/test/data/conf/testcfg.xml", FopEndpoint.class);
         float customSourceResolution = customConfiguredEndpoint.getFopFactory().getSourceResolution();
         assertEquals(96.0, customSourceResolution, 0.1);
     }
 
     @Test
     public void setPDFRenderingMetadataPerDocument() throws Exception {
-        Endpoint endpoint = context().getEndpoint("fop:pdf");
+        Endpoint endpoint = context().getEndpoint("fop:application/pdf");
         Producer producer = endpoint.createProducer();
         Exchange exchange = new DefaultExchange(context);
         exchange.getIn().setHeader("CamelFop.render.Creator", "Test User");
-        exchange.getIn().setBody(PDFHelper.decorateTextWithXSLFO("Test Content"));
+        exchange.getIn().setBody(FopHelper.decorateTextWithXSLFO("Test Content"));
 
         producer.process(exchange);
         PDDocument document = getDocumentFrom(exchange);
-        String creator = PDFHelper.getDocumentMetadataValue(document, COSName.CREATOR);
+        String creator = FopHelper.getDocumentMetadataValue(document, COSName.CREATOR);
         assertEquals("Test User", creator);
     }
 
     @Test
     public void encryptPDFWithUserPassword() throws Exception {
-        Endpoint endpoint = context().getEndpoint("fop:pdf");
+        Endpoint endpoint = context().getEndpoint("fop:application/pdf");
         Producer producer = endpoint.createProducer();
         Exchange exchange = new DefaultExchange(context);
         exchange.getIn().setHeader("CamelFop.encrypt.userPassword", "secret");
-        exchange.getIn().setBody(PDFHelper.decorateTextWithXSLFO("Test Content"));
+        exchange.getIn().setBody(FopHelper.decorateTextWithXSLFO("Test Content"));
 
         producer.process(exchange);
         PDDocument document = getDocumentFrom(exchange);
         assertTrue(document.isEncrypted());
     }
 
+    @Test
+    public void overridePDFOutputFormatToPlainText() throws Exception {
+        String defaultOutputFormat= "application/pdf";
+        Endpoint endpoint = context().getEndpoint("fop:" + defaultOutputFormat);
+        Producer producer = endpoint.createProducer();
+        Exchange exchange = new DefaultExchange(context);
+        exchange.getIn().setHeader(FopParams.CAMEL_FOP_OUTPUT_FORMAT, MimeConstants.MIME_PLAIN_TEXT);
+        exchange.getIn().setBody(FopHelper.decorateTextWithXSLFO("Test Content"));
+
+        producer.process(exchange);
+        String plainText = exchange.getOut().getBody(String.class).trim();
+        assertEquals("Test Content", plainText);
+    }
+
+    private PDDocument getDocumentFrom(Exchange exchange) throws IOException {
+        InputStream inputStream = exchange.getOut().getBody(InputStream.class);
+        return PDDocument.load(inputStream);
+    }
 }

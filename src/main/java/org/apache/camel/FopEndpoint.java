@@ -32,12 +32,14 @@ import java.io.IOException;
 public class FopEndpoint extends DefaultEndpoint {
     private String userConfigURL;
     private FopFactory fopFactory;
+    private String remaining;
 
     public FopEndpoint() {
     }
 
-    public FopEndpoint(String uri, FopComponent component) {
+    public FopEndpoint(String uri, FopComponent component, String remaining) {
         super(uri, component);
+        this.remaining = remaining;
         this.fopFactory = FopFactory.newInstance();
     }
 
@@ -46,7 +48,7 @@ public class FopEndpoint extends DefaultEndpoint {
     }
 
     public Producer createProducer() throws Exception {
-        return new FopProducer(this, fopFactory);
+        return new FopProducer(this, fopFactory, remaining);
     }
 
     public Consumer createConsumer(Processor processor) throws Exception {

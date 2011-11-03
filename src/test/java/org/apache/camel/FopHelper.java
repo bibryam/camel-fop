@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 
-public class PDFHelper {
+public class FopHelper {
 
     //decryption requires additional libraries
     public static void decryptPDFN(PDDocument document, String password) throws IOException, CryptographyException, BadSecurityHandlerException {
