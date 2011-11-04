@@ -77,11 +77,11 @@ public class FopEndpointTest extends CamelTestSupport {
 
     @Test
     public void overridePDFOutputFormatToPlainText() throws Exception {
-        String defaultOutputFormat= "application/pdf";
+        String defaultOutputFormat = "application/pdf";
         Endpoint endpoint = context().getEndpoint("fop:" + defaultOutputFormat);
         Producer producer = endpoint.createProducer();
         Exchange exchange = new DefaultExchange(context);
-        exchange.getIn().setHeader(FopParams.CAMEL_FOP_OUTPUT_FORMAT, MimeConstants.MIME_PLAIN_TEXT);
+        exchange.getIn().setHeader(FopConstants.CAMEL_FOP_OUTPUT_FORMAT, MimeConstants.MIME_PLAIN_TEXT);
         exchange.getIn().setBody(FopHelper.decorateTextWithXSLFO("Test Content"));
 
         producer.process(exchange);

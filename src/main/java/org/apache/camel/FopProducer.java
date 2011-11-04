@@ -18,7 +18,10 @@ package org.apache.camel;
 
 import org.apache.camel.impl.DefaultProducer;
 import org.apache.camel.util.IntrospectionSupport;
-import org.apache.fop.apps.*;
+import org.apache.fop.apps.FOPException;
+import org.apache.fop.apps.FOUserAgent;
+import org.apache.fop.apps.Fop;
+import org.apache.fop.apps.FopFactory;
 import org.apache.fop.pdf.PDFEncryptionParams;
 
 import javax.xml.transform.*;
@@ -55,7 +58,7 @@ public class FopProducer extends DefaultProducer {
     }
 
     private String getOutputFormat(Exchange exchange) {
-        String outputFormat = exchange.getIn().getHeader(FopParams.CAMEL_FOP_OUTPUT_FORMAT, this.remaining, String.class);
+        String outputFormat = exchange.getIn().getHeader(FopConstants.CAMEL_FOP_OUTPUT_FORMAT, this.remaining, String.class);
         if (outputFormat == null) {
             throw new RuntimeExchangeException("Missing output format", exchange);
         }
@@ -75,7 +78,7 @@ public class FopProducer extends DefaultProducer {
     }
 
     private void setEncryptionParameters(FOUserAgent userAgent, Map<String, Object> headers) throws Exception {
-        Map<String, Object> encryptionParameters = IntrospectionSupport.extractProperties(headers, FopParams.CAMEL_FOP_ENCRYPT);
+        Map<String, Object> encryptionParameters = IntrospectionSupport.extractProperties(headers, FopConstants.CAMEL_FOP_ENCRYPT);
         if (!encryptionParameters.isEmpty()) {
             PDFEncryptionParams encryptionParams = new PDFEncryptionParams();
             IntrospectionSupport.setProperties(encryptionParams, encryptionParameters);
@@ -84,7 +87,7 @@ public class FopProducer extends DefaultProducer {
     }
 
     private void setRenderParameters(FOUserAgent userAgent, Map<String, Object> headers) throws Exception {
-        Map<String, Object> parameters = IntrospectionSupport.extractProperties(headers, FopParams.CAMEL_FOP_RENDER);
+        Map<String, Object> parameters = IntrospectionSupport.extractProperties(headers, FopConstants.CAMEL_FOP_RENDER);
         if (!parameters.isEmpty()) {
             IntrospectionSupport.setProperties(userAgent, parameters);
         }
